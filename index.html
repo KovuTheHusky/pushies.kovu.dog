@@ -185,9 +185,18 @@
     let stopTimer = null;
     let spawnRate = 100;
     const sticker = document.getElementById('sticker');
-    const tempAudio = new Audio(audioFile);
-    tempAudio.addEventListener('loadedmetadata', () => {
-      audioDuration = tempAudio.duration;
+    const preloadList = [audioFile, 'voice.flac', 'choose.flac', 'cheer.flac', 'start.flac'];
+    const preloadRefs = [];
+    preloadList.forEach(src => {
+      const audio = new Audio(src);
+      audio.preload = 'auto';
+      audio.load();
+      preloadRefs.push(audio);
+      if (src === audioFile) {
+        audio.addEventListener('loadedmetadata', () => {
+          audioDuration = audio.duration;
+        });
+      }
     });
     function openMenu() {
       menuVoiceAudio = new Audio('voice.flac');
