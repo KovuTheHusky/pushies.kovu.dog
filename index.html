@@ -29,7 +29,7 @@
       position: relative;
       transition: transform 0.2s ease-out;
       will-change: transform;
-      touch-action: manipulation;
+      touch-action: none;
     }
 
     #sticker:hover {
@@ -154,7 +154,7 @@
   </style>
 </head>
 <body>
-  <img id="sticker" src="sticker.webp" draggable="false" onclick="handleClick()">
+  <img id="sticker" src="sticker.webp" draggable="false" onpointerdown="handleClick(event)">
   <button id="char-btn" onclick="openMenu()">Choose your character!</button>
   <div id="char-overlay" onclick="closeMenu(event)">
     <div class="char-option" onclick="selectChar('kovu.webp')">
@@ -203,8 +203,8 @@
       }
     });
     function openMenu() {
-      menuVoiceAudio = new Audio('voice.flac');
-      menuChooseAudio = new Audio('choose.flac');
+      menuVoiceAudio = preloadRefs[1].cloneNode(); // voice.flac
+      menuChooseAudio = preloadRefs[2].cloneNode(); // choose.flac
       menuVoiceAudio.play();
       menuChooseAudio.play();
       document.getElementById('char-overlay').classList.add('visible');
@@ -223,14 +223,14 @@
       if (e.target.id === 'char-overlay') {
         document.getElementById('char-overlay').classList.remove('visible');
         stopMenuAudio();
-        new Audio('cheer.flac').play();
-        new Audio('start.flac').play();
+        preloadRefs[3].cloneNode().play(); // cheer.flac
+        preloadRefs[4].cloneNode().play(); // start.flac
       }
     }
     function selectChar(filename) {
       stopMenuAudio();
-      new Audio('cheer.flac').play();
-      new Audio('start.flac').play();
+      preloadRefs[3].cloneNode().play(); // cheer.flac
+      preloadRefs[4].cloneNode().play(); // start.flac
       sticker.src = filename;
       document.getElementById('char-overlay').classList.remove('visible');
     }
@@ -257,11 +257,12 @@
       const scale = 1.1 + (0.3 * pulseFactor);
       sticker.style.transform = `scale(${scale}) rotate(${deg}deg)`;
     }
-    function handleClick() {
+    function handleClick(e) {
+      if (e) e.preventDefault();
       const now = Date.now();
       const rawDurationMs = (audioDuration || 1) * 1000;
       const effectiveDurationMs = Math.max(0, rawDurationMs - silenceTrim);
-      const audio = new Audio(audioFile);
+      const audio = preloadRefs[0].cloneNode(); // audio.flac
       activeInstances.unshift(audio);
       activeInstances.forEach((track, index) => {
         if (index === 0) track.volume = 1.0;
