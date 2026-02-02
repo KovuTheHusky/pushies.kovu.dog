@@ -13,6 +13,7 @@
       justify-content: center;
       align-items: center;
       overflow: hidden;
+      position: relative;
     }
 
     #sticker {
@@ -21,6 +22,8 @@
       user-select: none;
       transition: transform 0.2s ease-out;
       -webkit-tap-highlight-color: transparent;
+      z-index: 10;
+      position: relative;
     }
 
     #sticker:hover {
@@ -45,26 +48,80 @@
       }
     }
 
+    .banana {
+      position: absolute;
+      top: -100px;
+      z-index: 1;
+      pointer-events: none;
+      animation-name: fall;
+      animation-timing-function: linear;
+      animation-fill-mode: forwards;
+    }
+
+    @keyframes fall {
+      to {
+        transform: translateY(120vh);
+      }
+    }
+
   </style>
 </head>
 <body>
   <img id="sticker" src="sticker.webp" onclick="handleClick()">
   <script>
     let activeSounds = 0;
+    let rainInterval = null;
     const sticker = document.getElementById('sticker');
-    const animationClass = 'spinning-pulsing';
+    const bananaSrc = 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/svg/1f34c.svg';
+
     function handleClick() {
-      activeSounds++;
-      sticker.classList.add(animationClass);
       const audio = new Audio('audio.flac');
       audio.play();
+      activeSounds++;
+      if (activeSounds === 1) {
+        sticker.classList.add('spinning-pulsing');
+        startRain();
+      }
       audio.onended = function () {
         activeSounds--;
         if (activeSounds <= 0) {
           activeSounds = 0;
-          sticker.classList.remove(animationClass);
+          sticker.classList.remove('spinning-pulsing');
+          stopRain();
         }
       };
+    }
+
+    function createBanana() {
+      const b = document.createElement('img');
+      b.src = bananaSrc;
+      b.className = 'banana';
+      b.style.left = Math.random() * 100 + 'vw';
+      const size = 30 + Math.random() * 50;
+      b.style.width = size + 'px';
+      const duration = 2 + Math.random() * 3;
+      b.style.animationDuration = duration + 's';
+      document.body.appendChild(b);
+      setTimeout(() => {
+        if (b.parentNode) b.remove();
+      }, duration * 1000);
+    }
+
+    function startRain() {
+      if (!rainInterval) {
+        rainInterval = setInterval(createBanana, 100);
+      }
+    }
+
+    function stopRain() {
+      clearInterval(rainInterval);
+      rainInterval = null;
+      const existingBananas = document.querySelectorAll('.banana');
+      existingBananas.forEach(b => {
+        b.style.transition = 'opacity 0.5s ease-out';
+        b.style.opacity = '0';
+        setTimeout(() => { if (b.parentNode) b.remove(); }, 500);
+      });
     }
   </script>
 </body>
