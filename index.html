@@ -168,7 +168,7 @@
     </div>
   </div>
   <script>
-    const bananaSrc = 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/svg/1f34c.svg';
+    const bananaSrc = 'banana.svg';
     const audioFile = 'audio.flac';
     const silenceTrim = 1000;
     const baseRotationSpeed = 0.6;
@@ -331,6 +331,9 @@
       b.style.width = (30 + Math.random() * 50) + 'px';
       const duration = 2 + Math.random() * 3;
       b.style.animationDuration = duration + 's';
+      b.addEventListener('animationend', () => {
+        if (b.parentNode) b.remove();
+      });
       const now = Date.now();
       if (now > fadeStartTime) {
         const timeRemaining = endTime - now;
@@ -343,7 +346,6 @@
         });
       }
       document.body.appendChild(b);
-      setTimeout(() => { if (b.parentNode) b.remove(); }, duration * 1000);
     }
   </script>
 </body>
