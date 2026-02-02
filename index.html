@@ -3,8 +3,31 @@
 <head>
   <meta charset="utf-8">
   <link rel="icon" href="https://kovu.dog/favicon.webp" sizes="any" type="image/webp" />
-  <title>🍼🧷🍌</title>
+  <title>🍌</title>
+  <style>
+    body {
+      background-color: #000;
+      margin: 0;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #sticker {
+      height: 50%;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.1s ease-in-out;
+    }
+
+    #sticker:hover {
+      transform: scale(1.1);
+    }
+
+  </style>
 </head>
-<body style="background: #000 url('sticker.webp') center center no-repeat; background-size: auto 50%;">
+<body>
+  <img id="sticker" src="sticker.webp" onclick="new Audio('audio.flac').play()">
 </body>
 </html>
