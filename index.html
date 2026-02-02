@@ -17,6 +17,8 @@
       position: relative;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     #sticker {
@@ -153,7 +155,7 @@
 
   </style>
 </head>
-<body>
+<body oncontextmenu="return false;">
   <img id="sticker" src="sticker.webp" draggable="false" onpointerdown="handleClick(event)">
   <button id="char-btn" onclick="openMenu()">Choose your character!</button>
   <div id="char-overlay" onclick="closeMenu(event)">
