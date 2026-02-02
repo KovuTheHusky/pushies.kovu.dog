@@ -365,18 +365,20 @@
       }
       const rawDurationMs = spinDuration * 1000;
       const effectiveDurationMs = Math.max(0, rawDurationMs - silenceTrim);
-      const instance = playSound(audioKey, 1.0);
+      const mainVolume = (audioKey === 'flutter') ? 2.0 : 1.0;
+      const instance = playSound(audioKey, mainVolume);
       if (audioKey === 'banana') {
-        playSound('flutter', 1.0);
+        playSound('flutter', 2.0);
       }
       if (instance) {
         activeSources.unshift(instance);
         activeSources.forEach((item, index) => {
           const time = audioCtx.currentTime;
-          if (index === 0) item.gainNode.gain.setTargetAtTime(1.0, time, 0.01);
-          else if (index === 1) item.gainNode.gain.setTargetAtTime(0.75, time, 0.01);
-          else if (index === 2) item.gainNode.gain.setTargetAtTime(0.50, time, 0.01);
-          else item.gainNode.gain.setTargetAtTime(0.25, time, 0.01);
+          const targetVol = (audioKey === 'flutter') ? 2.0 : 1.0;
+          if (index === 0) item.gainNode.gain.setTargetAtTime(targetVol * 1.0, time, 0.01);
+          else if (index === 1) item.gainNode.gain.setTargetAtTime(targetVol * 0.75, time, 0.01);
+          else if (index === 2) item.gainNode.gain.setTargetAtTime(targetVol * 0.50, time, 0.01);
+          else item.gainNode.gain.setTargetAtTime(targetVol * 0.25, time, 0.01);
         });
         instance.source.onended = function () {
           activeSources = activeSources.filter(item => item !== instance);
