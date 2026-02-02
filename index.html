@@ -171,14 +171,86 @@
   </div>
   <script>
     const bananaSrc = 'banana.svg';
-    const audioFile = 'audio.flac';
+    const audioFiles = {
+      main: 'audio.flac',
+      voice: 'voice.flac',
+      choose: 'choose.flac',
+      cheer: 'cheer.flac',
+      start: 'start.flac'
+    };
     const silenceTrim = 1000;
     const baseRotationSpeed = 0.6;
     const fadeDuration = 250;
-    let audioDuration = 0;
-    let activeInstances = [];
-    let menuVoiceAudio = null;
-    let menuChooseAudio = null;
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+    const buffers = {};
+    let mainAudioDuration = 0;
+    async function loadAudio(key, url) {
+      try {
+        const response = await fetch(url);
+        const arrayBuffer = await response.arrayBuffer();
+        const decodedBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        buffers[key] = decodedBuffer;
+        if (key === 'main') mainAudioDuration = decodedBuffer.duration;
+      } catch (e) {
+        console.error("Failed to load audio:", url, e);
+      }
+    }
+    Object.keys(audioFiles).forEach(key => loadAudio(key, audioFiles[key]));
+    let activeSources = [];
+    let voiceSource = null;
+    let chooseSource = null;
+    function playSound(key, volume = 1.0, loop = false) {
+      if (!buffers[key]) return null;
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffers[key];
+      source.loop = loop;
+      const gainNode = audioCtx.createGain();
+      gainNode.gain.value = volume;
+      source.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      source.start(0);
+      return { source, gainNode };
+    }
+    function unlockAudioContext() {
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+    function openMenu() {
+      unlockAudioContext();
+      stopMenuAudio();
+      const v = playSound('voice', 1.0);
+      if (v) voiceSource = v.source;
+      const c = playSound('choose', 1.0, true);
+      if (c) chooseSource = c.source;
+      document.getElementById('char-overlay').classList.add('visible');
+    }
+    function stopMenuAudio() {
+      if (voiceSource) {
+        try { voiceSource.stop(); } catch (e) { }
+        voiceSource = null;
+      }
+      if (chooseSource) {
+        try { chooseSource.stop(); } catch (e) { }
+        chooseSource = null;
+      }
+    }
+    function closeMenu(e) {
+      if (e.target.id === 'char-overlay') {
+        document.getElementById('char-overlay').classList.remove('visible');
+        stopMenuAudio();
+        playSound('cheer', 1.0);
+        playSound('start', 1.0);
+      }
+    }
+    function selectChar(filename) {
+      stopMenuAudio();
+      playSound('cheer', 1.0);
+      playSound('start', 1.0);
+      sticker.src = filename;
+      document.getElementById('char-overlay').classList.remove('visible');
+    }
     let currentRotation = 0;
     let startRotation = 0;
     let targetRotation = 0;
@@ -191,52 +263,6 @@
     let stopTimer = null;
     let spawnRate = 100;
     const sticker = document.getElementById('sticker');
-    const preloadList = [audioFile, 'voice.flac', 'choose.flac', 'cheer.flac', 'start.flac'];
-    const preloadRefs = [];
-    preloadList.forEach(src => {
-      const audio = new Audio(src);
-      audio.preload = 'auto';
-      audio.load();
-      preloadRefs.push(audio);
-      if (src === audioFile) {
-        audio.addEventListener('loadedmetadata', () => {
-          audioDuration = audio.duration;
-        });
-      }
-    });
-    function openMenu() {
-      menuVoiceAudio = preloadRefs[1].cloneNode(); // voice.flac
-      menuChooseAudio = preloadRefs[2].cloneNode(); // choose.flac
-      menuVoiceAudio.play();
-      menuChooseAudio.loop = true;
-      menuChooseAudio.play();
-      document.getElementById('char-overlay').classList.add('visible');
-    }
-    function stopMenuAudio() {
-      if (menuVoiceAudio) {
-        menuVoiceAudio.pause();
-        menuVoiceAudio.currentTime = 0;
-      }
-      if (menuChooseAudio) {
-        menuChooseAudio.pause();
-        menuChooseAudio.currentTime = 0;
-      }
-    }
-    function closeMenu(e) {
-      if (e.target.id === 'char-overlay') {
-        document.getElementById('char-overlay').classList.remove('visible');
-        stopMenuAudio();
-        preloadRefs[3].cloneNode().play(); // cheer.flac
-        preloadRefs[4].cloneNode().play(); // start.flac
-      }
-    }
-    function selectChar(filename) {
-      stopMenuAudio();
-      preloadRefs[3].cloneNode().play(); // cheer.flac
-      preloadRefs[4].cloneNode().play(); // start.flac
-      sticker.src = filename;
-      document.getElementById('char-overlay').classList.remove('visible');
-    }
     function animate() {
       if (!isAnimating) return;
       const now = Date.now();
@@ -262,21 +288,24 @@
     }
     function handleClick(e) {
       if (e) e.preventDefault();
+      unlockAudioContext();
       const now = Date.now();
-      const rawDurationMs = (audioDuration || 1) * 1000;
+      const rawDurationMs = (mainAudioDuration || 1) * 1000;
       const effectiveDurationMs = Math.max(0, rawDurationMs - silenceTrim);
-      const audio = preloadRefs[0].cloneNode(); // audio.flac
-      activeInstances.unshift(audio);
-      activeInstances.forEach((track, index) => {
-        if (index === 0) track.volume = 1.0;
-        else if (index === 1) track.volume = 0.75;
-        else if (index === 2) track.volume = 0.50;
-        else track.volume = 0.25;
-      });
-      audio.play();
-      audio.onended = function () {
-        activeInstances = activeInstances.filter(t => t !== audio);
-      };
+      const instance = playSound('main', 1.0);
+      if (instance) {
+        activeSources.unshift(instance);
+        activeSources.forEach((item, index) => {
+          const time = audioCtx.currentTime;
+          if (index === 0) item.gainNode.gain.setTargetAtTime(1.0, time, 0.01);
+          else if (index === 1) item.gainNode.gain.setTargetAtTime(0.75, time, 0.01);
+          else if (index === 2) item.gainNode.gain.setTargetAtTime(0.50, time, 0.01);
+          else item.gainNode.gain.setTargetAtTime(0.25, time, 0.01);
+        });
+        instance.source.onended = function () {
+          activeSources = activeSources.filter(item => item !== instance);
+        };
+      }
       if (!isAnimating) currentRotation = 0;
       startRotation = currentRotation;
       startTime = now;
