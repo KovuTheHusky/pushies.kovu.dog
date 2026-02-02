@@ -14,10 +14,9 @@
       align-items: center;
       overflow: hidden;
       position: relative;
-      font-family: sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
-    /* --- MAIN STICKER --- */
     #sticker {
       height: 50%;
       cursor: pointer;
@@ -34,7 +33,6 @@
       transform: scale(1.1);
     }
 
-    /* --- BANANA RAIN --- */
     .banana {
       position: absolute;
       top: -100px;
@@ -59,26 +57,44 @@
       }
     }
 
-    /* --- CHARACTER SELECTOR UI --- */
     #char-btn {
       position: absolute;
       bottom: 30px;
       z-index: 20;
-      padding: 15px 30px;
-      font-size: 1.2rem;
-      font-weight: bold;
+      background-color: #2196F3;
       color: white;
-      background: #333;
-      border: 2px solid #555;
-      border-radius: 50px;
+      border: none;
+      border-radius: 24px;
+      padding: 0 32px;
+      height: 48px;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.25px;
       cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.2),
+        0 6px 10px 0 rgba(0, 0, 0, 0.14),
+        0 1px 18px 0 rgba(0, 0, 0, 0.12);
+      transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.2s;
+      outline: none;
     }
 
     #char-btn:hover {
-      background: #555;
+      background-color: #1976D2;
+      box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2),
+        0 8px 10px 1px rgba(0, 0, 0, 0.14),
+        0 3px 14px 2px rgba(0, 0, 0, 0.12);
       transform: scale(1.05);
+    }
+
+    #char-btn:active {
+      background-color: #0D47A1;
+      box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.2),
+        0 4px 5px 0 rgba(0, 0, 0, 0.14),
+        0 1px 10px 0 rgba(0, 0, 0, 0.12);
+      transform: scale(0.98);
     }
 
     #char-overlay {
@@ -140,22 +156,15 @@
     </div>
   </div>
   <script>
-    // --- Configuration ---
     const bananaSrc = 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/svg/1f34c.svg';
     const audioFile = 'audio.flac';
     const silenceTrim = 1000;
     const baseRotationSpeed = 0.6;
     const fadeDuration = 250;
-
-    // --- State ---
     let audioDuration = 0;
     let activeInstances = [];
-
-    // Menu Audio State (Tracks the specific active sounds)
     let menuVoiceAudio = null;
     let menuChooseAudio = null;
-
-    // Animation State
     let currentRotation = 0;
     let startRotation = 0;
     let targetRotation = 0;
@@ -166,67 +175,46 @@
     let rainGenInterval = null;
     let fadeTimer = null;
     let stopTimer = null;
-
     const sticker = document.getElementById('sticker');
-
-    // Preload duration
     const tempAudio = new Audio(audioFile);
     tempAudio.addEventListener('loadedmetadata', () => {
       audioDuration = tempAudio.duration;
     });
-
-    // --- MENU LOGIC ---
-
     function openMenu() {
-      // 1. Create new audio instances
       menuVoiceAudio = new Audio('voice.flac');
       menuChooseAudio = new Audio('choose.flac');
-
-      // 2. Play them
       menuVoiceAudio.play();
       menuChooseAudio.play();
-
-      // 3. Show UI
       document.getElementById('char-overlay').classList.add('visible');
     }
-
-    function closeMenu(e) {
-      if (e.target.id === 'char-overlay') {
-        document.getElementById('char-overlay').classList.remove('visible');
-
-        // Optional: If you want closing the menu via background click to ALSO stop audio:
-        // stopMenuAudio();
-      }
-    }
-
-    function selectChar(filename) {
-      // 1. Stop the "Choose your character" sounds immediately
+    function stopMenuAudio() {
       if (menuVoiceAudio) {
         menuVoiceAudio.pause();
-        menuVoiceAudio.currentTime = 0; // Reset to start
+        menuVoiceAudio.currentTime = 0;
       }
       if (menuChooseAudio) {
         menuChooseAudio.pause();
         menuChooseAudio.currentTime = 0;
       }
-
-      // 2. Play the Success Sounds
+    }
+    function closeMenu(e) {
+      if (e.target.id === 'char-overlay') {
+        document.getElementById('char-overlay').classList.remove('visible');
+        stopMenuAudio();
+        new Audio('cheer.flac').play();
+        new Audio('start.flac').play();
+      }
+    }
+    function selectChar(filename) {
+      stopMenuAudio();
       new Audio('cheer.flac').play();
       new Audio('start.flac').play();
-
-      // 3. Swap the image
       sticker.src = filename;
-
-      // 4. Close menu
       document.getElementById('char-overlay').classList.remove('visible');
     }
-
-    // --- MAIN GAME LOGIC ---
-
     function animate() {
       if (!isAnimating) return;
       const now = Date.now();
-
       if (now >= endTime) {
         isAnimating = false;
         sticker.style.transition = 'none';
@@ -235,13 +223,11 @@
         sticker.style.transition = 'transform 0.2s ease-out';
         return;
       }
-
       const progress = (now - startTime) / (endTime - startTime);
       currentRotation = startRotation + ((targetRotation - startRotation) * progress);
       updateTransform(currentRotation);
       requestAnimationFrame(animate);
     }
-
     function updateTransform(deg) {
       const normalizedAngle = (deg % 360);
       const radians = normalizedAngle * (Math.PI / 360);
@@ -249,12 +235,10 @@
       const scale = 1.1 + (0.3 * pulseFactor);
       sticker.style.transform = `scale(${scale}) rotate(${deg}deg)`;
     }
-
     function handleClick() {
       const now = Date.now();
       const rawDurationMs = (audioDuration || 1) * 1000;
       const effectiveDurationMs = Math.max(0, rawDurationMs - silenceTrim);
-
       const audio = new Audio(audioFile);
       activeInstances.unshift(audio);
       activeInstances.forEach((track, index) => {
@@ -267,39 +251,30 @@
       audio.onended = function () {
         activeInstances = activeInstances.filter(t => t !== audio);
       };
-
       if (!isAnimating) currentRotation = 0;
       startRotation = currentRotation;
       startTime = now;
       endTime = now + effectiveDurationMs;
       fadeStartTime = endTime - fadeDuration;
-
       const duration = endTime - startTime;
       const projectedRotation = startRotation + (duration * baseRotationSpeed);
       targetRotation = Math.round(projectedRotation / 360) * 360;
-
       if (!isAnimating) {
         isAnimating = true;
         sticker.style.transition = 'none';
         requestAnimationFrame(animate);
       }
-
       clearTimeout(fadeTimer);
       clearTimeout(stopTimer);
-
       startRainGeneration();
       resetBananasVisibility();
-
       const timeUntilFade = Math.max(0, effectiveDurationMs - fadeDuration);
       fadeTimer = setTimeout(() => fadeExistingBananas(), timeUntilFade);
-
       stopTimer = setTimeout(() => {
         stopRainGeneration();
         removeBananas();
       }, effectiveDurationMs);
     }
-
-    // --- Rain Helpers ---
     function startRainGeneration() {
       if (!rainGenInterval) rainGenInterval = setInterval(createBanana, 100);
     }
@@ -329,10 +304,8 @@
       b.draggable = false;
       b.style.left = Math.random() * 100 + 'vw';
       b.style.width = (30 + Math.random() * 50) + 'px';
-
       const duration = 2 + Math.random() * 3;
       b.style.animationDuration = duration + 's';
-
       const now = Date.now();
       if (now > fadeStartTime) {
         const timeRemaining = endTime - now;
@@ -344,7 +317,6 @@
           b.style.opacity = '';
         });
       }
-
       document.body.appendChild(b);
       setTimeout(() => { if (b.parentNode) b.remove(); }, duration * 1000);
     }
