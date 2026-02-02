@@ -208,6 +208,7 @@
       menuVoiceAudio = preloadRefs[1].cloneNode(); // voice.flac
       menuChooseAudio = preloadRefs[2].cloneNode(); // choose.flac
       menuVoiceAudio.play();
+      menuChooseAudio.loop = true;
       menuChooseAudio.play();
       document.getElementById('char-overlay').classList.add('visible');
     }
