@@ -38,22 +38,25 @@
       transform: scale(1.1);
     }
 
-    .banana {
+    .particle {
       position: absolute;
-      top: -100px;
-      z-index: 1;
       pointer-events: none;
       user-select: none;
       -webkit-user-drag: none;
-      animation-name: fall;
-      animation-timing-function: linear;
-      animation-fill-mode: forwards;
       transition: opacity 0.25s ease-out;
       opacity: 1;
     }
 
-    .banana.fading {
+    .particle.fading {
       opacity: 0 !important;
+    }
+
+    .banana {
+      top: -100px;
+      z-index: 1;
+      animation-name: fall;
+      animation-timing-function: linear;
+      animation-fill-mode: forwards;
     }
 
     @keyframes fall {
@@ -62,9 +65,24 @@
       }
     }
 
-    #char-btn {
+    .poop {
+      top: 50%;
+      left: 50%;
+      z-index: 1;
+      transform: translate(-50%, -50%);
+      animation-name: shoot;
+      animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+      animation-fill-mode: forwards;
+    }
+
+    @keyframes shoot {
+      to {
+        transform: translate(var(--tx), var(--ty)) rotate(360deg);
+      }
+    }
+
+    .game-btn {
       position: absolute;
-      bottom: 30px;
       z-index: 20;
       background-color: #2196F3;
       color: white;
@@ -84,8 +102,31 @@
       white-space: nowrap;
     }
 
+    .game-btn:hover {
+      transform: scale(1.1);
+    }
+
+    .game-btn:active {
+      background-color: #0D47A1;
+      transform: scale(0.9);
+    }
+
+    #char-btn {
+      bottom: 30px;
+    }
+
+    #maymoo-btn {
+      top: 30px;
+      background-color: #795548;
+    }
+
+    #maymoo-btn.active {
+      background-color: #4E342E;
+      border: 2px solid #fff;
+    }
+
     @media (max-width: 600px) {
-      #char-btn {
+      .game-btn {
         width: auto;
         max-width: 90%;
         white-space: normal;
@@ -93,17 +134,7 @@
         font-size: clamp(13px, 5vw, 18px);
         line-height: 1.2;
         padding: 16px 24px;
-        bottom: 50px;
       }
-    }
-
-    #char-btn:hover {
-      transform: scale(1.1);
-    }
-
-    #char-btn:active {
-      background-color: #0D47A1;
-      transform: scale(0.9);
     }
 
     #char-overlay {
@@ -156,8 +187,9 @@
   </style>
 </head>
 <body oncontextmenu="return false;">
+  <button id="maymoo-btn" class="game-btn" onclick="toggleMaymooMode()">Maymoo Mode: OFF</button>
   <img id="sticker" src="sticker.webp" draggable="false" onpointerdown="handleClick(event)">
-  <button id="char-btn" onclick="openMenu()">Choose your character!</button>
+  <button id="char-btn" class="game-btn" onclick="openMenu()">Choose your character!</button>
   <div id="char-overlay" onclick="closeMenu(event)">
     <div class="char-option" onclick="selectChar('kovu.webp')">
       <img src="kovu.webp" draggable="false">
@@ -171,8 +203,10 @@
   </div>
   <script>
     const bananaSrc = 'banana.svg';
+    const poopSrc = 'poop.svg';
     const audioFiles = {
-      main: 'audio.flac',
+      banana: 'banana.flac',
+      poop: 'poop.flac',
       voice: 'voice.flac',
       choose: 'choose.flac',
       cheer: 'cheer.flac',
@@ -181,17 +215,16 @@
     const silenceTrim = 1000;
     const baseRotationSpeed = 0.6;
     const fadeDuration = 250;
+    let isMaymooMode = false;
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const audioCtx = new AudioContext();
     const buffers = {};
-    let mainAudioDuration = 0;
     async function loadAudio(key, url) {
       try {
         const response = await fetch(url);
         const arrayBuffer = await response.arrayBuffer();
         const decodedBuffer = await audioCtx.decodeAudioData(arrayBuffer);
         buffers[key] = decodedBuffer;
-        if (key === 'main') mainAudioDuration = decodedBuffer.duration;
       } catch (e) {
         console.error("Failed to load audio:", url, e);
       }
@@ -217,6 +250,17 @@
         audioCtx.resume();
       }
     }
+    function toggleMaymooMode() {
+      isMaymooMode = !isMaymooMode;
+      const btn = document.getElementById('maymoo-btn');
+      if (isMaymooMode) {
+        btn.innerText = "Maymoo Mode: ON";
+        btn.classList.add('active');
+      } else {
+        btn.innerText = "Maymoo Mode: OFF";
+        btn.classList.remove('active');
+      }
+    }
     function openMenu() {
       unlockAudioContext();
       stopMenuAudio();
@@ -227,14 +271,8 @@
       document.getElementById('char-overlay').classList.add('visible');
     }
     function stopMenuAudio() {
-      if (voiceSource) {
-        try { voiceSource.stop(); } catch (e) { }
-        voiceSource = null;
-      }
-      if (chooseSource) {
-        try { chooseSource.stop(); } catch (e) { }
-        chooseSource = null;
-      }
+      if (voiceSource) { try { voiceSource.stop(); } catch (e) { } voiceSource = null; }
+      if (chooseSource) { try { chooseSource.stop(); } catch (e) { } chooseSource = null; }
     }
     function closeMenu(e) {
       if (e.target.id === 'char-overlay') {
@@ -290,9 +328,17 @@
       if (e) e.preventDefault();
       unlockAudioContext();
       const now = Date.now();
-      const rawDurationMs = (mainAudioDuration || 1) * 1000;
+      const audioKey = isMaymooMode ? 'poop' : 'banana';
+      let spinDuration = 1;
+      if (buffers[audioKey]) {
+        spinDuration = buffers[audioKey].duration;
+      }
+      const rawDurationMs = spinDuration * 1000;
       const effectiveDurationMs = Math.max(0, rawDurationMs - silenceTrim);
-      const instance = playSound('main', 1.0);
+      const instance = playSound(audioKey, 1.0);
+      if (audioKey === 'banana') {
+        playSound('poop', 1.0);
+      }
       if (instance) {
         activeSources.unshift(instance);
         activeSources.forEach((item, index) => {
@@ -323,62 +369,87 @@
       clearTimeout(stopTimer);
       spawnRate = Math.max(10, spawnRate - 15);
       startRainGeneration();
-      resetBananasVisibility();
+      resetParticlesVisibility();
       const timeUntilFade = Math.max(0, effectiveDurationMs - fadeDuration);
-      fadeTimer = setTimeout(() => fadeExistingBananas(), timeUntilFade);
+      fadeTimer = setTimeout(() => fadeExistingParticles(), timeUntilFade);
       stopTimer = setTimeout(() => {
         stopRainGeneration();
-        removeBananas();
+        removeParticles();
       }, effectiveDurationMs);
     }
     function startRainGeneration() {
       if (rainGenInterval) clearInterval(rainGenInterval);
-      rainGenInterval = setInterval(createBanana, spawnRate);
+      rainGenInterval = setInterval(spawnParticle, spawnRate);
     }
     function stopRainGeneration() {
       clearInterval(rainGenInterval);
       rainGenInterval = null;
       spawnRate = 100;
     }
-    function removeBananas() {
-      document.querySelectorAll('.banana').forEach(b => b.remove());
+    function removeParticles() {
+      document.querySelectorAll('.particle').forEach(b => b.remove());
     }
-    function resetBananasVisibility() {
-      document.querySelectorAll('.banana').forEach(b => {
+    function resetParticlesVisibility() {
+      document.querySelectorAll('.particle').forEach(b => {
         b.classList.remove('fading');
         b.style.opacity = '';
         b.style.transitionDuration = '';
       });
     }
-    function fadeExistingBananas() {
-      document.querySelectorAll('.banana').forEach(b => {
+    function fadeExistingParticles() {
+      document.querySelectorAll('.particle').forEach(b => {
         b.classList.add('fading');
       });
+    }
+    function spawnParticle() {
+      if (isMaymooMode) createPoop();
+      else createBanana();
     }
     function createBanana() {
       const b = document.createElement('img');
       b.src = bananaSrc;
-      b.className = 'banana';
+      b.className = 'particle banana';
       b.draggable = false;
       b.style.left = Math.random() * 100 + 'vw';
       b.style.width = (30 + Math.random() * 50) + 'px';
       const duration = 2 + Math.random() * 3;
       b.style.animationDuration = duration + 's';
-      b.addEventListener('animationend', () => {
-        if (b.parentNode) b.remove();
+
+      setupParticleLifecycle(b);
+      document.body.appendChild(b);
+    }
+    function createPoop() {
+      const p = document.createElement('img');
+      p.src = poopSrc;
+      p.className = 'particle poop';
+      p.draggable = false;
+      p.style.width = (30 + Math.random() * 50) + 'px';
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.max(window.innerWidth, window.innerHeight) * 0.8;
+      const tx = Math.cos(angle) * distance;
+      const ty = Math.sin(angle) * distance;
+      p.style.setProperty('--tx', `${tx}px`);
+      p.style.setProperty('--ty', `${ty}px`);
+      const duration = 1 + Math.random() * 2;
+      p.style.animationDuration = duration + 's';
+      setupParticleLifecycle(p);
+      document.body.appendChild(p);
+    }
+    function setupParticleLifecycle(el) {
+      el.addEventListener('animationend', () => {
+        if (el.parentNode) el.remove();
       });
       const now = Date.now();
       if (now > fadeStartTime) {
         const timeRemaining = endTime - now;
         let startOpacity = Math.max(0, Math.min(1, timeRemaining / fadeDuration));
-        b.style.opacity = startOpacity;
-        b.style.transitionDuration = (timeRemaining / 1000) + 's';
+        el.style.opacity = startOpacity;
+        el.style.transitionDuration = (timeRemaining / 1000) + 's';
         requestAnimationFrame(() => {
-          b.classList.add('fading');
-          b.style.opacity = '';
+          el.classList.add('fading');
+          el.style.opacity = '';
         });
       }
-      document.body.appendChild(b);
     }
   </script>
 </body>
