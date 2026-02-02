@@ -213,6 +213,14 @@
       cheer: 'cheer.flac',
       start: 'start.flac'
     };
+    const imageFiles = [
+      'sticker.webp', 'kovu.webp', 'maymoo.webp', 'nyx.webp',
+      'banana.svg', 'poop.svg'
+    ];
+    imageFiles.forEach(src => {
+      const img = new Image();
+      img.src = src;
+    });
     const silenceTrim = 1250;
     const baseRotationSpeed = 0.5;
     const fadeDuration = 250;
