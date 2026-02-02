@@ -118,6 +118,7 @@
     #maymoo-btn {
       top: 30px;
       background-color: #795548;
+      display: none;
     }
 
     #maymoo-btn.active {
@@ -206,9 +207,9 @@
     const poopSrc = 'poop.svg';
     const audioFiles = {
       banana: 'banana.flac',
-      poop: 'poop.flac',
-      voice: 'voice.flac',
+      flutter: 'flutter.flac',
       choose: 'choose.flac',
+      menu: 'menu.flac',
       cheer: 'cheer.flac',
       start: 'start.flac'
     };
@@ -216,6 +217,27 @@
     const baseRotationSpeed = 0.6;
     const fadeDuration = 250;
     let isMaymooMode = false;
+    const konamiCode = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
+    let konamiIndex = 0;
+    document.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === konamiCode[konamiIndex].toLowerCase() || e.key === konamiCode[konamiIndex]) {
+        konamiIndex++;
+        if (konamiIndex === konamiCode.length) {
+          activateEasterEgg();
+          konamiIndex = 0;
+        }
+      } else {
+        konamiIndex = 0;
+      }
+    });
+    function activateEasterEgg() {
+      const btn = document.getElementById('maymoo-btn');
+      btn.style.display = 'block';
+      if (!isMaymooMode) toggleMaymooMode();
+      unlockAudioContext();
+      playSound('cheer', 1.0);
+      playSound('start', 1.0);
+    }
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const audioCtx = new AudioContext();
     const buffers = {};
@@ -231,8 +253,8 @@
     }
     Object.keys(audioFiles).forEach(key => loadAudio(key, audioFiles[key]));
     let activeSources = [];
-    let voiceSource = null;
     let chooseSource = null;
+    let menuSource = null;
     function playSound(key, volume = 1.0, loop = false) {
       if (!buffers[key]) return null;
       const source = audioCtx.createBufferSource();
@@ -264,15 +286,15 @@
     function openMenu() {
       unlockAudioContext();
       stopMenuAudio();
-      const v = playSound('voice', 1.0);
-      if (v) voiceSource = v.source;
-      const c = playSound('choose', 1.0, true);
-      if (c) chooseSource = c.source;
+      const v = playSound('choose', 1.0);
+      if (v) chooseSource = v.source;
+      const c = playSound('menu', 1.0, true);
+      if (c) menuSource = c.source;
       document.getElementById('char-overlay').classList.add('visible');
     }
     function stopMenuAudio() {
-      if (voiceSource) { try { voiceSource.stop(); } catch (e) { } voiceSource = null; }
       if (chooseSource) { try { chooseSource.stop(); } catch (e) { } chooseSource = null; }
+      if (menuSource) { try { menuSource.stop(); } catch (e) { } menuSource = null; }
     }
     function closeMenu(e) {
       if (e.target.id === 'char-overlay') {
@@ -328,7 +350,7 @@
       if (e) e.preventDefault();
       unlockAudioContext();
       const now = Date.now();
-      const audioKey = isMaymooMode ? 'poop' : 'banana';
+      const audioKey = isMaymooMode ? 'flutter' : 'banana';
       let spinDuration = 1;
       if (buffers[audioKey]) {
         spinDuration = buffers[audioKey].duration;
@@ -337,7 +359,7 @@
       const effectiveDurationMs = Math.max(0, rawDurationMs - silenceTrim);
       const instance = playSound(audioKey, 1.0);
       if (audioKey === 'banana') {
-        playSound('poop', 1.0);
+        playSound('flutter', 1.0);
       }
       if (instance) {
         activeSources.unshift(instance);
@@ -414,7 +436,6 @@
       b.style.width = (30 + Math.random() * 50) + 'px';
       const duration = 2 + Math.random() * 3;
       b.style.animationDuration = duration + 's';
-
       setupParticleLifecycle(b);
       document.body.appendChild(b);
     }
