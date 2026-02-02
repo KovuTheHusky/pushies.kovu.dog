@@ -175,6 +175,7 @@
     let rainGenInterval = null;
     let fadeTimer = null;
     let stopTimer = null;
+    let spawnRate = 100;
     const sticker = document.getElementById('sticker');
     const tempAudio = new Audio(audioFile);
     tempAudio.addEventListener('loadedmetadata', () => {
@@ -266,6 +267,7 @@
       }
       clearTimeout(fadeTimer);
       clearTimeout(stopTimer);
+      spawnRate = Math.max(10, spawnRate - 15);
       startRainGeneration();
       resetBananasVisibility();
       const timeUntilFade = Math.max(0, effectiveDurationMs - fadeDuration);
@@ -276,11 +278,13 @@
       }, effectiveDurationMs);
     }
     function startRainGeneration() {
-      if (!rainGenInterval) rainGenInterval = setInterval(createBanana, 100);
+      if (rainGenInterval) clearInterval(rainGenInterval);
+      rainGenInterval = setInterval(createBanana, spawnRate);
     }
     function stopRainGeneration() {
       clearInterval(rainGenInterval);
       rainGenInterval = null;
+      spawnRate = 100;
     }
     function removeBananas() {
       document.querySelectorAll('.banana').forEach(b => b.remove());
