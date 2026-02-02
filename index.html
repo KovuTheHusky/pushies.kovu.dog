@@ -31,7 +31,7 @@
       position: relative;
       transition: transform 0.2s ease-out;
       will-change: transform;
-      touch-action: none;
+      touch-action: manipulation;
     }
 
     #sticker:hover {
@@ -189,7 +189,7 @@
 </head>
 <body oncontextmenu="return false;">
   <button id="maymoo-btn" class="game-btn" onclick="toggleMaymooMode()">Maymoo Mode: OFF</button>
-  <img id="sticker" src="sticker.webp" draggable="false" onpointerdown="handleClick(event)">
+  <img id="sticker" src="sticker.webp" draggable="false" onclick="handleClick(event)">
   <button id="char-btn" class="game-btn" onclick="openMenu()">Choose your character!</button>
   <div id="char-overlay" onclick="closeMenu(event)">
     <div class="char-option" onclick="selectChar('kovu.webp')">
@@ -256,6 +256,7 @@
     let chooseSource = null;
     let menuSource = null;
     function playSound(key, volume = 1.0, loop = false) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
       if (!buffers[key]) return null;
       const source = audioCtx.createBufferSource();
       source.buffer = buffers[key];
@@ -347,7 +348,6 @@
       sticker.style.transform = `scale(${scale}) rotate(${deg}deg)`;
     }
     function handleClick(e) {
-      if (e) e.preventDefault();
       unlockAudioContext();
       const now = Date.now();
       const audioKey = isMaymooMode ? 'flutter' : 'banana';
