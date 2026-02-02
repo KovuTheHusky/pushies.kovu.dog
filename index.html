@@ -21,7 +21,9 @@
       cursor: pointer;
       user-select: none;
       transition: transform 0.2s ease-out;
+      user-select: none;
       -webkit-tap-highlight-color: transparent;
+      -webkit-user-drag: none;
       z-index: 10;
       position: relative;
     }
@@ -40,7 +42,7 @@
       }
 
       50% {
-        transform: rotate(180deg) scale(1.6);
+        transform: rotate(180deg) scale(1.5);
       }
 
       100% {
@@ -67,27 +69,37 @@
   </style>
 </head>
 <body>
-  <img id="sticker" src="sticker.webp" onclick="handleClick()">
+  <img id="sticker" src="sticker.webp" draggable="false" onclick="handleClick()">
   <script>
     let activeSounds = 0;
+    let stopRequested = false;
     let rainInterval = null;
     const sticker = document.getElementById('sticker');
     const bananaSrc = 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/svg/1f34c.svg';
+    sticker.addEventListener('animationiteration', () => {
+      if (stopRequested && activeSounds === 0) {
+        sticker.classList.remove('spinning-pulsing');
+        stopRequested = false;
+        stopRain();
+      }
+    });
 
     function handleClick() {
+      if (stopRequested) {
+        stopRequested = false;
+      }
       const audio = new Audio('audio.flac');
-      audio.play();
       activeSounds++;
       if (activeSounds === 1) {
         sticker.classList.add('spinning-pulsing');
         startRain();
       }
+      audio.play();
       audio.onended = function () {
         activeSounds--;
         if (activeSounds <= 0) {
           activeSounds = 0;
-          sticker.classList.remove('spinning-pulsing');
-          stopRain();
+          stopRequested = true;
         }
       };
     }
@@ -97,30 +109,27 @@
       b.src = bananaSrc;
       b.className = 'banana';
       b.style.left = Math.random() * 100 + 'vw';
-      const size = 30 + Math.random() * 50;
+      const size = 10 + Math.random() * 100;
       b.style.width = size + 'px';
       const duration = 2 + Math.random() * 3;
       b.style.animationDuration = duration + 's';
       document.body.appendChild(b);
-      setTimeout(() => {
-        if (b.parentNode) b.remove();
-      }, duration * 1000);
+      setTimeout(() => { if (b.parentNode) b.remove(); }, duration * 1000);
     }
 
     function startRain() {
       if (!rainInterval) {
-        rainInterval = setInterval(createBanana, 100);
+        rainInterval = setInterval(createBanana, 50);
       }
     }
 
     function stopRain() {
       clearInterval(rainInterval);
       rainInterval = null;
-      const existingBananas = document.querySelectorAll('.banana');
-      existingBananas.forEach(b => {
-        b.style.transition = 'opacity 0.5s ease-out';
+      document.querySelectorAll('.banana').forEach(b => {
+        b.style.transition = 'opacity 0.25s ease-out';
         b.style.opacity = '0';
-        setTimeout(() => { if (b.parentNode) b.remove(); }, 500);
+        setTimeout(() => { if (b.parentNode) b.remove(); }, 250);
       });
     }
   </script>
