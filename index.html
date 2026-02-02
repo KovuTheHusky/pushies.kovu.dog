@@ -20,34 +20,16 @@
       height: 50%;
       cursor: pointer;
       user-select: none;
-      transition: transform 0.2s ease-out;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
       -webkit-user-drag: none;
+      -webkit-tap-highlight-color: transparent;
       z-index: 10;
       position: relative;
+      transition: transform 0.2s ease-out;
+      will-change: transform;
     }
 
     #sticker:hover {
       transform: scale(1.1);
-    }
-
-    .spinning-pulsing {
-      animation: spinPulse 0.6s linear infinite;
-    }
-
-    @keyframes spinPulse {
-      0% {
-        transform: rotate(0deg) scale(1.1);
-      }
-
-      50% {
-        transform: rotate(180deg) scale(1.5);
-      }
-
-      100% {
-        transform: rotate(360deg) scale(1.1);
-      }
     }
 
     .banana {
@@ -55,9 +37,17 @@
       top: -100px;
       z-index: 1;
       pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
       animation-name: fall;
       animation-timing-function: linear;
       animation-fill-mode: forwards;
+      transition: opacity 0.25s ease-out;
+      opacity: 1;
+    }
+
+    .banana.fading {
+      opacity: 0 !important;
     }
 
     @keyframes fall {
@@ -71,66 +61,145 @@
 <body>
   <img id="sticker" src="sticker.webp" draggable="false" onclick="handleClick()">
   <script>
-    let activeSounds = 0;
-    let stopRequested = false;
-    let rainInterval = null;
-    const sticker = document.getElementById('sticker');
     const bananaSrc = 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/svg/1f34c.svg';
-    sticker.addEventListener('animationiteration', () => {
-      if (stopRequested && activeSounds === 0) {
-        sticker.classList.remove('spinning-pulsing');
-        stopRequested = false;
-        stopRain();
-      }
+    const audioFile = 'audio.flac';
+    const silenceTrim = 1000;
+    const baseRotationSpeed = 0.6;
+    const fadeDuration = 250;
+    let audioDuration = 0;
+    let activeInstances = [];
+    let currentRotation = 0;
+    let startRotation = 0;
+    let targetRotation = 0;
+    let startTime = 0;
+    let endTime = 0;
+    let fadeStartTime = 0;
+    let isAnimating = false;
+    let rainGenInterval = null;
+    let fadeTimer = null;
+    let stopTimer = null;
+    const sticker = document.getElementById('sticker');
+    const tempAudio = new Audio(audioFile);
+    tempAudio.addEventListener('loadedmetadata', () => {
+      audioDuration = tempAudio.duration;
     });
 
+    function animate() {
+      if (!isAnimating) return;
+      const now = Date.now();
+      if (now >= endTime) {
+        isAnimating = false;
+        // Silent Reset Logic
+        sticker.style.transition = 'none';
+        sticker.style.transform = '';
+        void sticker.offsetWidth;
+        sticker.style.transition = 'transform 0.2s ease-out';
+        return;
+      }
+      const progress = (now - startTime) / (endTime - startTime);
+      currentRotation = startRotation + ((targetRotation - startRotation) * progress);
+      updateTransform(currentRotation);
+      requestAnimationFrame(animate);
+    }
+
+    function updateTransform(deg) {
+      const normalizedAngle = (deg % 360);
+      const radians = normalizedAngle * (Math.PI / 360);
+      const pulseFactor = Math.sin(radians);
+      const scale = 1.1 + (0.3 * pulseFactor);
+      sticker.style.transform = `scale(${scale}) rotate(${deg}deg)`;
+    }
+
     function handleClick() {
-      if (stopRequested) {
-        stopRequested = false;
-      }
-      const audio = new Audio('audio.flac');
-      activeSounds++;
-      if (activeSounds === 1) {
-        sticker.classList.add('spinning-pulsing');
-        startRain();
-      }
+      const now = Date.now();
+      const rawDurationMs = (audioDuration || 1) * 1000;
+      const effectiveDurationMs = Math.max(0, rawDurationMs - silenceTrim);
+      const audio = new Audio(audioFile);
+      activeInstances.unshift(audio);
+      activeInstances.forEach((track, index) => {
+        if (index === 0) track.volume = 1.0;
+        else if (index === 1) track.volume = 0.75;
+        else if (index === 2) track.volume = 0.50;
+        else track.volume = 0.25;
+      });
       audio.play();
       audio.onended = function () {
-        activeSounds--;
-        if (activeSounds <= 0) {
-          activeSounds = 0;
-          stopRequested = true;
-        }
+        activeInstances = activeInstances.filter(t => t !== audio);
       };
+      if (!isAnimating) currentRotation = 0;
+      startRotation = currentRotation;
+      startTime = now;
+      endTime = now + effectiveDurationMs;
+      fadeStartTime = endTime - fadeDuration;
+      const duration = endTime - startTime;
+      const projectedRotation = startRotation + (duration * baseRotationSpeed);
+      targetRotation = Math.round(projectedRotation / 360) * 360;
+      if (!isAnimating) {
+        isAnimating = true;
+        sticker.style.transition = 'none';
+        requestAnimationFrame(animate);
+      }
+      clearTimeout(fadeTimer);
+      clearTimeout(stopTimer);
+      startRainGeneration();
+      resetBananasVisibility();
+      const timeUntilFade = Math.max(0, effectiveDurationMs - fadeDuration);
+      fadeTimer = setTimeout(() => fadeExistingBananas(), timeUntilFade);
+      stopTimer = setTimeout(() => {
+        stopRainGeneration();
+        removeBananas();
+      }, effectiveDurationMs);
+    }
+
+    function startRainGeneration() {
+      if (!rainGenInterval) rainGenInterval = setInterval(createBanana, 100);
+    }
+
+    function stopRainGeneration() {
+      clearInterval(rainGenInterval);
+      rainGenInterval = null;
+    }
+
+    function removeBananas() {
+      document.querySelectorAll('.banana').forEach(b => b.remove());
+    }
+
+    function resetBananasVisibility() {
+      document.querySelectorAll('.banana').forEach(b => {
+        b.classList.remove('fading');
+        b.style.opacity = '';
+        b.style.transitionDuration = '';
+      });
+    }
+
+    function fadeExistingBananas() {
+      document.querySelectorAll('.banana').forEach(b => {
+        b.classList.add('fading');
+      });
     }
 
     function createBanana() {
       const b = document.createElement('img');
       b.src = bananaSrc;
       b.className = 'banana';
+      b.draggable = false;
       b.style.left = Math.random() * 100 + 'vw';
-      const size = 10 + Math.random() * 100;
-      b.style.width = size + 'px';
+      b.style.width = (30 + Math.random() * 50) + 'px';
       const duration = 2 + Math.random() * 3;
       b.style.animationDuration = duration + 's';
+      const now = Date.now();
+      if (now > fadeStartTime) {
+        const timeRemaining = endTime - now;
+        let startOpacity = Math.max(0, Math.min(1, timeRemaining / fadeDuration));
+        b.style.opacity = startOpacity;
+        b.style.transitionDuration = (timeRemaining / 1000) + 's';
+        requestAnimationFrame(() => {
+          b.classList.add('fading');
+          b.style.opacity = '';
+        });
+      }
       document.body.appendChild(b);
       setTimeout(() => { if (b.parentNode) b.remove(); }, duration * 1000);
-    }
-
-    function startRain() {
-      if (!rainInterval) {
-        rainInterval = setInterval(createBanana, 50);
-      }
-    }
-
-    function stopRain() {
-      clearInterval(rainInterval);
-      rainInterval = null;
-      document.querySelectorAll('.banana').forEach(b => {
-        b.style.transition = 'opacity 0.25s ease-out';
-        b.style.opacity = '0';
-        setTimeout(() => { if (b.parentNode) b.remove(); }, 250);
-      });
     }
   </script>
 </body>
