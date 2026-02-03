@@ -21,6 +21,30 @@
       -webkit-user-select: none;
     }
 
+    #particle-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    #fade-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #000;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.25s ease-out;
+    }
+
     #sticker {
       height: 50%;
       cursor: pointer;
@@ -36,49 +60,6 @@
 
     #sticker:hover {
       transform: scale(1.1);
-    }
-
-    .particle {
-      position: absolute;
-      pointer-events: none;
-      user-select: none;
-      -webkit-user-drag: none;
-      transition: opacity 0.25s ease-out;
-      opacity: 1;
-    }
-
-    .particle.fading {
-      opacity: 0 !important;
-    }
-
-    .banana {
-      top: -100px;
-      z-index: 1;
-      animation-name: fall;
-      animation-timing-function: linear;
-      animation-fill-mode: forwards;
-    }
-
-    @keyframes fall {
-      to {
-        transform: translateY(120vh);
-      }
-    }
-
-    .poop {
-      top: 50%;
-      left: 50%;
-      z-index: 1;
-      transform: translate(-50%, -50%);
-      animation-name: shoot;
-      animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
-      animation-fill-mode: forwards;
-    }
-
-    @keyframes shoot {
-      to {
-        transform: translate(var(--tx), var(--ty)) rotate(360deg);
-      }
     }
 
     .game-btn {
@@ -124,6 +105,52 @@
     #maymoo-btn.active {
       background-color: #4E342E;
       border: 2px solid #fff;
+    }
+
+    .particle {
+      position: absolute;
+      pointer-events: none;
+      user-select: none;
+      display: none;
+    }
+
+    .particle.active {
+      display: block;
+    }
+
+    @keyframes fall {
+      from {
+        transform: translateY(-100px);
+      }
+
+      to {
+        transform: translateY(120vh);
+      }
+    }
+
+    @keyframes shoot {
+      from {
+        transform: translate(-50%, -50%) rotate(0deg);
+      }
+
+      to {
+        transform: translate(var(--tx), var(--ty)) rotate(360deg);
+      }
+    }
+
+    .particle.banana-anim {
+      top: 0;
+      animation-name: fall;
+      animation-timing-function: linear;
+      animation-fill-mode: forwards;
+    }
+
+    .particle.poop-anim {
+      top: 50%;
+      left: 50%;
+      animation-name: shoot;
+      animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+      animation-fill-mode: forwards;
     }
 
     @media (max-width: 600px) {
@@ -188,6 +215,8 @@
   </style>
 </head>
 <body oncontextmenu="return false;">
+  <div id="particle-container"></div>
+  <div id="fade-overlay"></div>
   <button id="maymoo-btn" class="game-btn" onclick="toggleMaymooMode()">Maymoo Mode: OFF</button>
   <img id="sticker" src="sticker.webp" draggable="false" onclick="handleClick(event)">
   <button id="char-btn" class="game-btn" onclick="openMenu()">Choose Your Character</button>
@@ -213,18 +242,57 @@
       cheer: 'cheer.flac',
       start: 'start.flac'
     };
-    const imageFiles = [
-      'sticker.webp', 'kovu.webp', 'maymoo.webp', 'nyx.webp',
-      'banana.svg', 'poop.svg'
-    ];
-    imageFiles.forEach(src => {
-      const img = new Image();
-      img.src = src;
-    });
+    const imageFiles = ['sticker.webp', 'kovu.webp', 'maymoo.webp', 'nyx.webp', 'banana.svg', 'poop.svg'];
+    imageFiles.forEach(src => { const img = new Image(); img.src = src; });
+    const config = {
+      minSpawnRate: 10,
+      maxAnimDuration: 5000,
+      safetyMargin: 1.25,
+      initialPoolSize: 100
+    };
+    const MAX_POOL_SIZE = Math.ceil((config.maxAnimDuration / config.minSpawnRate) * config.safetyMargin);
     const silenceTrim = 1250;
     const baseRotationSpeed = 0.5;
     const fadeDuration = 250;
+    let poolIndex = 0;
+    let particlePool = [];
     let isMaymooMode = false;
+    let isAnimating = false;
+    let rainGenInterval = null;
+    let fadeTimer = null;
+    let stopTimer = null;
+    let spawnRate = 100;
+    let currentRotation = 0;
+    let startRotation = 0;
+    let targetRotation = 0;
+    let startTime = 0;
+    let endTime = 0;
+    const sticker = document.getElementById('sticker');
+    const particleContainer = document.getElementById('particle-container');
+    const fadeOverlay = document.getElementById('fade-overlay');
+    function initPool() {
+      growPool(config.initialPoolSize);
+    }
+    function growPool(amount) {
+      const targetSize = Math.min(MAX_POOL_SIZE, particlePool.length + amount);
+      console.log(`Growing particle pool to ${targetSize} (max ${MAX_POOL_SIZE})`);
+      const createCount = targetSize - particlePool.length;
+      if (createCount <= 0) return;
+      for (let i = 0; i < createCount; i++) {
+        const img = document.createElement('img');
+        img.className = 'particle';
+        img.draggable = false;
+        particleContainer.appendChild(img);
+        particlePool.push(img);
+      }
+    }
+    initPool();
+    function resetAllParticles() {
+      particlePool.forEach(el => {
+        el.className = 'particle';
+        el.removeAttribute('style');
+      });
+    }
     const konamiCode = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
     let konamiIndex = 0;
     document.addEventListener('keydown', (e) => {
@@ -234,14 +302,12 @@
           activateEasterEgg();
           konamiIndex = 0;
         }
-      } else {
-        konamiIndex = 0;
-      }
+      } else { konamiIndex = 0; }
     });
     function activateEasterEgg() {
       const btn = document.getElementById('maymoo-btn');
       btn.style.display = 'block';
-      if (!isMaymooMode) toggleMaymooMode(false);
+      if (!isMaymooMode) toggleMaymooMode();
       unlockAudioContext();
       playSound('cheer', 1.0);
     }
@@ -254,9 +320,7 @@
         const arrayBuffer = await response.arrayBuffer();
         const decodedBuffer = await audioCtx.decodeAudioData(arrayBuffer);
         buffers[key] = decodedBuffer;
-      } catch (e) {
-        console.error("Failed to load audio:", url, e);
-      }
+      } catch (e) { console.error("Failed to load audio:", url, e); }
     }
     Object.keys(audioFiles).forEach(key => loadAudio(key, audioFiles[key]));
     let activeSources = [];
@@ -276,15 +340,11 @@
       return { source, gainNode };
     }
     function unlockAudioContext() {
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
     }
-    function toggleMaymooMode(playSoundFlag = true) {
-      if (playSoundFlag) {
-        unlockAudioContext();
-        playSound('start', 1.0);
-      }
+    function toggleMaymooMode() {
+      unlockAudioContext();
+      playSound('start', 1.0);
       isMaymooMode = !isMaymooMode;
       const btn = document.getElementById('maymoo-btn');
       if (isMaymooMode) {
@@ -321,18 +381,6 @@
       sticker.src = filename;
       document.getElementById('char-overlay').classList.remove('visible');
     }
-    let currentRotation = 0;
-    let startRotation = 0;
-    let targetRotation = 0;
-    let startTime = 0;
-    let endTime = 0;
-    let fadeStartTime = 0;
-    let isAnimating = false;
-    let rainGenInterval = null;
-    let fadeTimer = null;
-    let stopTimer = null;
-    let spawnRate = 100;
-    const sticker = document.getElementById('sticker');
     function animate() {
       if (!isAnimating) return;
       const now = Date.now();
@@ -358,28 +406,24 @@
     }
     function handleClick(e) {
       unlockAudioContext();
+      fadeOverlay.style.transition = 'none';
+      fadeOverlay.style.opacity = '0';
       const now = Date.now();
       const audioKey = isMaymooMode ? 'flutter' : 'banana';
       let spinDuration = 1;
-      if (buffers[audioKey]) {
-        spinDuration = buffers[audioKey].duration;
-      }
+      if (buffers[audioKey]) spinDuration = buffers[audioKey].duration;
       const rawDurationMs = spinDuration * 1000;
       const effectiveDurationMs = Math.max(0, rawDurationMs - silenceTrim);
       const mainVolume = (audioKey === 'flutter') ? 2.0 : 1.0;
       const instance = playSound(audioKey, mainVolume);
-      if (audioKey === 'banana') {
-        playSound('flutter', 2.0);
-      }
+      if (audioKey === 'banana') playSound('flutter', 2.0);
       if (instance) {
         activeSources.unshift(instance);
         activeSources.forEach((item, index) => {
           const time = audioCtx.currentTime;
           const targetVol = (audioKey === 'flutter') ? 2.0 : 1.0;
-          if (index === 0) item.gainNode.gain.setTargetAtTime(targetVol * 1.0, time, 0.01);
-          else if (index === 1) item.gainNode.gain.setTargetAtTime(targetVol * 0.75, time, 0.01);
-          else if (index === 2) item.gainNode.gain.setTargetAtTime(targetVol * 0.50, time, 0.01);
-          else item.gainNode.gain.setTargetAtTime(targetVol * 0.25, time, 0.01);
+          const modifier = [1.0, 0.75, 0.50, 0.25][index] || 0;
+          item.gainNode.gain.setTargetAtTime(targetVol * modifier, time, 0.01);
         });
         instance.source.onended = function () {
           activeSources = activeSources.filter(item => item !== instance);
@@ -389,7 +433,6 @@
       startRotation = currentRotation;
       startTime = now;
       endTime = now + effectiveDurationMs;
-      fadeStartTime = endTime - fadeDuration;
       const duration = endTime - startTime;
       const projectedRotation = startRotation + (duration * baseRotationSpeed);
       targetRotation = Math.round(projectedRotation / 360) * 360;
@@ -400,87 +443,54 @@
       }
       clearTimeout(fadeTimer);
       clearTimeout(stopTimer);
-      spawnRate = Math.max(10, spawnRate - 15);
+      spawnRate = Math.max(config.minSpawnRate, spawnRate - 15);
+      const requiredParticles = Math.ceil((config.maxAnimDuration / spawnRate) * config.safetyMargin);
+      if (requiredParticles > particlePool.length) {
+        growPool(requiredParticles - particlePool.length);
+      }
       startRainGeneration();
-      resetParticlesVisibility();
       const timeUntilFade = Math.max(0, effectiveDurationMs - fadeDuration);
-      fadeTimer = setTimeout(() => fadeExistingParticles(), timeUntilFade);
+      fadeTimer = setTimeout(() => {
+        fadeOverlay.style.transition = `opacity ${fadeDuration / 1000}s ease-out`;
+        fadeOverlay.style.opacity = '1';
+      }, timeUntilFade);
       stopTimer = setTimeout(() => {
         stopRainGeneration();
-        removeParticles();
+        resetAllParticles();
       }, effectiveDurationMs);
     }
     function startRainGeneration() {
       if (rainGenInterval) clearInterval(rainGenInterval);
-      rainGenInterval = setInterval(spawnParticle, spawnRate);
+      rainGenInterval = setInterval(spawnFromPool, spawnRate);
     }
     function stopRainGeneration() {
       clearInterval(rainGenInterval);
       rainGenInterval = null;
       spawnRate = 100;
     }
-    function removeParticles() {
-      document.querySelectorAll('.particle').forEach(b => b.remove());
-    }
-    function resetParticlesVisibility() {
-      document.querySelectorAll('.particle').forEach(b => {
-        b.classList.remove('fading');
-        b.style.opacity = '';
-        b.style.transitionDuration = '';
-      });
-    }
-    function fadeExistingParticles() {
-      document.querySelectorAll('.particle').forEach(b => {
-        b.classList.add('fading');
-      });
-    }
-    function spawnParticle() {
-      if (isMaymooMode) createPoop();
-      else createBanana();
-    }
-    function createBanana() {
-      const b = document.createElement('img');
-      b.src = bananaSrc;
-      b.className = 'particle banana';
-      b.draggable = false;
-      b.style.left = Math.random() * 100 + 'vw';
-      b.style.width = (30 + Math.random() * 50) + 'px';
-      const duration = 2 + Math.random() * 3;
-      b.style.animationDuration = duration + 's';
-      setupParticleLifecycle(b);
-      document.body.appendChild(b);
-    }
-    function createPoop() {
-      const p = document.createElement('img');
-      p.src = poopSrc;
-      p.className = 'particle poop';
-      p.draggable = false;
-      p.style.width = (30 + Math.random() * 50) + 'px';
-      const angle = Math.random() * Math.PI * 2;
-      const distance = Math.max(window.innerWidth, window.innerHeight) * 0.8;
-      const tx = Math.cos(angle) * distance;
-      const ty = Math.sin(angle) * distance;
-      p.style.setProperty('--tx', `${tx}px`);
-      p.style.setProperty('--ty', `${ty}px`);
-      const duration = 1 + Math.random() * 2;
-      p.style.animationDuration = duration + 's';
-      setupParticleLifecycle(p);
-      document.body.appendChild(p);
-    }
-    function setupParticleLifecycle(el) {
-      el.addEventListener('animationend', () => {
-        if (el.parentNode) el.remove();
-      });
-      const now = Date.now();
-      if (now > fadeStartTime) {
-        const timeRemaining = endTime - now;
-        let startOpacity = Math.max(0, Math.min(1, timeRemaining / fadeDuration));
-        el.style.opacity = startOpacity;
-        el.style.transitionDuration = (timeRemaining / 1000) + 's';
-        requestAnimationFrame(() => {
-          el.classList.add('fading');
-          el.style.opacity = '';
-        });
+    function spawnFromPool() {
+      const el = particlePool[poolIndex];
+      poolIndex = (poolIndex + 1) % particlePool.length;
+      el.className = 'particle';
+      el.removeAttribute('style');
+      void el.offsetWidth;
+      if (isMaymooMode) {
+        el.src = poopSrc;
+        el.style.width = (30 + Math.random() * 50) + 'px';
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.max(window.innerWidth, window.innerHeight) * 0.8;
+        const tx = Math.cos(angle) * distance;
+        const ty = Math.sin(angle) * distance;
+        el.style.setProperty('--tx', `${tx}px`);
+        el.style.setProperty('--ty', `${ty}px`);
+        el.style.animationDuration = (1 + Math.random() * 2) + 's';
+        el.className = 'particle active poop-anim';
+      } else {
+        el.src = bananaSrc;
+        el.style.left = Math.random() * 100 + 'vw';
+        el.style.width = (30 + Math.random() * 50) + 'px';
+        el.style.animationDuration = (2 + Math.random() * 3) + 's';
+        el.className = 'particle active banana-anim';
       }
     }
   </script>
