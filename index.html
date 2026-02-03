@@ -241,10 +241,9 @@
     function activateEasterEgg() {
       const btn = document.getElementById('maymoo-btn');
       btn.style.display = 'block';
-      if (!isMaymooMode) toggleMaymooMode();
+      if (!isMaymooMode) toggleMaymooMode(false);
       unlockAudioContext();
       playSound('cheer', 1.0);
-      playSound('start', 1.0);
     }
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const audioCtx = new AudioContext();
@@ -281,7 +280,11 @@
         audioCtx.resume();
       }
     }
-    function toggleMaymooMode() {
+    function toggleMaymooMode(playSoundFlag = true) {
+      if (playSoundFlag) {
+        unlockAudioContext();
+        playSound('start', 1.0);
+      }
       isMaymooMode = !isMaymooMode;
       const btn = document.getElementById('maymoo-btn');
       if (isMaymooMode) {
@@ -310,13 +313,11 @@
         document.getElementById('char-overlay').classList.remove('visible');
         stopMenuAudio();
         playSound('cheer', 1.0);
-        playSound('start', 1.0);
       }
     }
     function selectChar(filename) {
       stopMenuAudio();
       playSound('cheer', 1.0);
-      playSound('start', 1.0);
       sticker.src = filename;
       document.getElementById('char-overlay').classList.remove('visible');
     }
