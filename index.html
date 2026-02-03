@@ -275,7 +275,6 @@
     }
     function growPool(amount) {
       const targetSize = Math.min(MAX_POOL_SIZE, particlePool.length + amount);
-      console.log(`Growing particle pool to ${targetSize} (max ${MAX_POOL_SIZE})`);
       const createCount = targetSize - particlePool.length;
       if (createCount <= 0) return;
       for (let i = 0; i < createCount; i++) {
