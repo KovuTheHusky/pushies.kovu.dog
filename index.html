@@ -113,7 +113,7 @@
     }
 
     .game-txt.version {
-      bottom: 30px;
+      top: 30px;
       right: 30px;
     }
 
@@ -123,6 +123,7 @@
 
     #maymoo-btn {
       top: 30px;
+      right: 30px;
       background-color: #795548;
       display: none;
     }
@@ -130,6 +131,12 @@
     #maymoo-btn.active {
       background-color: #4E342E;
       border: 2px solid #fff;
+    }
+
+    #menu-btn {
+      top: 30px;
+      left: 30px;
+      display: none;
     }
 
     .particle {
@@ -190,9 +197,13 @@
       }
 
       .game-txt {
-        padding: 8px 16px;
-        font-size: clamp(10px, 4vw, 14px);
-        line-height: normal;
+        width: auto;
+        max-width: 90%;
+        white-space: normal;
+        height: auto;
+        font-size: clamp(13px, 5vw, 18px);
+        line-height: 1.2;
+        padding: 16px 24px;
       }
     }
 
@@ -248,10 +259,11 @@
 <body oncontextmenu="return false;">
   <div id="particle-container"></div>
   <div id="fade-overlay"></div>
+  <button id="menu-btn" class="game-btn">&#9776;</button>
   <button id="maymoo-btn" class="game-btn" onclick="toggleMaymooMode()">Maymoo Mode: OFF</button>
   <img id="sticker" src="sticker.webp" draggable="false" onclick="handleClick(event)">
   <button id="char-btn" class="game-btn" onclick="openMenu()">Choose Your Character</button>
-  <div class="game-txt version" onclick="unlockAudioContext(); playSound('pushies', 1.0)">26.2.7.1</div>
+  <div class="game-txt version" onclick="unlockAudioContext(); playSound('pushies', 1.0)">26.2</div>
   <div id="char-overlay" onclick="closeMenu(event)">
     <div class="char-option" onclick="selectChar('kovu.webp')">
       <img src="kovu.webp" draggable="false">
@@ -339,6 +351,8 @@
     function activateEasterEgg() {
       const btn = document.getElementById('maymoo-btn');
       btn.style.display = 'block';
+      const txt = document.querySelector('.game-txt.version');
+      txt.style.display = 'none';
       if (!isMaymooMode) toggleMaymooMode();
       unlockAudioContext();
       playSound('cheer', 1.0);
