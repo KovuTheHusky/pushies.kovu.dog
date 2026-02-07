@@ -92,6 +92,31 @@
       transform: scale(0.9);
     }
 
+    .game-txt {
+      position: absolute;
+      z-index: 20;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 12px 32px;
+      min-height: 32px;
+      font-size: 16px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.25px;
+      vertical-align: middle;
+      line-height: 32px;
+      cursor: pointer;
+      outline: none;
+      touch-action: manipulation;
+      white-space: nowrap;
+    }
+
+    .game-txt.version {
+      bottom: 30px;
+      right: 30px;
+    }
+
     #char-btn {
       bottom: 30px;
     }
@@ -163,6 +188,12 @@
         line-height: 1.2;
         padding: 16px 24px;
       }
+
+      .game-txt {
+        padding: 8px 16px;
+        font-size: clamp(10px, 4vw, 14px);
+        line-height: normal;
+      }
     }
 
     #char-overlay {
@@ -220,6 +251,7 @@
   <button id="maymoo-btn" class="game-btn" onclick="toggleMaymooMode()">Maymoo Mode: OFF</button>
   <img id="sticker" src="sticker.webp" draggable="false" onclick="handleClick(event)">
   <button id="char-btn" class="game-btn" onclick="openMenu()">Choose Your Character</button>
+  <div class="game-txt version" onclick="unlockAudioContext(); playSound('pushies', 1.0)">26.2.7.1</div>
   <div id="char-overlay" onclick="closeMenu(event)">
     <div class="char-option" onclick="selectChar('kovu.webp')">
       <img src="kovu.webp" draggable="false">
@@ -240,7 +272,8 @@
       choose: 'choose.flac',
       menu: 'menu.flac',
       cheer: 'cheer.flac',
-      start: 'start.flac'
+      start: 'start.flac',
+      pushies: 'pushies.flac'
     };
     const imageFiles = ['sticker.webp', 'kovu.webp', 'maymoo.webp', 'nyx.webp', 'banana.svg', 'poop.svg'];
     imageFiles.forEach(src => { const img = new Image(); img.src = src; });
