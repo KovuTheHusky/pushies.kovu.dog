@@ -276,7 +276,7 @@
     </button>
     <img
       id="sticker"
-      src="sticker.webp"
+      src="assets/images/kovu.webp"
       draggable="false"
       onclick="handleClick(event)"
     />
@@ -290,38 +290,40 @@
         playSound('pushies', 1.0);
       "
     >
-      26.3
+      26.4
     </div>
     <div id="char-overlay" onclick="closeMenu(event)">
-      <div class="char-option" onclick="selectChar('kovu.webp')">
-        <img src="kovu.webp" draggable="false" />
+      <div class="char-option" onclick="selectChar('assets/images/kovu.webp')">
+        <img src="assets/images/kovu.webp" draggable="false" />
       </div>
-      <div class="char-option" onclick="selectChar('maymoo.webp')">
-        <img src="maymoo.webp" draggable="false" />
+      <div
+        class="char-option"
+        onclick="selectChar('assets/images/maymoo.webp')"
+      >
+        <img src="assets/images/maymoo.webp" draggable="false" />
       </div>
-      <div class="char-option" onclick="selectChar('nyx.webp')">
-        <img src="nyx.webp" draggable="false" />
+      <div class="char-option" onclick="selectChar('assets/images/nyx.webp')">
+        <img src="assets/images/nyx.webp" draggable="false" />
       </div>
     </div>
     <script>
-      const bananaSrc = "banana.svg";
-      const poopSrc = "poop.svg";
+      const bananaSrc = "assets/images/banana.svg";
+      const poopSrc = "assets/images/poop.svg";
       const audioFiles = {
-        banana: "banana.flac",
-        flutter: "flutter.flac",
-        choose: "choose.flac",
-        menu: "menu.flac",
-        cheer: "cheer.flac",
-        start: "start.flac",
-        pushies: "pushies.flac",
+        banana: "assets/sounds/banana.flac",
+        flutter: "assets/sounds/flutter.flac",
+        choose: "assets/sounds/choose.flac",
+        menu: "assets/sounds/menu.flac",
+        cheer: "assets/sounds/cheer.flac",
+        start: "assets/sounds/start.flac",
+        pushies: "assets/sounds/pushies.flac",
       };
       const imageFiles = [
-        "sticker.webp",
-        "kovu.webp",
-        "maymoo.webp",
-        "nyx.webp",
-        "banana.svg",
-        "poop.svg",
+        "assets/images/kovu.webp",
+        "assets/images/maymoo.webp",
+        "assets/images/nyx.webp",
+        "assets/images/banana.svg",
+        "assets/images/poop.svg",
       ];
       imageFiles.forEach((src) => {
         const img = new Image();
