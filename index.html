@@ -104,51 +104,97 @@
         transform: scale(0.9);
       }
 
-      .game-txt {
-        position: absolute;
-        z-index: 20;
-        color: white;
-        border: none;
-        border-radius: 50px;
-        padding: 12px 32px;
-        min-height: 32px;
-        font-size: 16px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1.25px;
-        vertical-align: middle;
-        line-height: 32px;
-        cursor: pointer;
-        outline: none;
-        touch-action: manipulation;
-        white-space: nowrap;
-      }
-
-      .game-txt.version {
-        top: 30px;
-        right: 30px;
-      }
-
       #char-btn {
         bottom: 30px;
       }
 
-      #maymoo-btn {
-        top: 30px;
-        right: 30px;
-        background-color: #795548;
-        display: none;
-      }
-
-      #maymoo-btn.active {
-        background-color: #4e342e;
-        border: 2px solid #fff;
+      #char-btn:hover {
+        transform: scale(1.1);
       }
 
       #menu-btn {
         top: 30px;
         left: 30px;
+      }
+
+      #version-btn {
+        top: 30px;
+        right: 30px;
+        background-color: transparent;
+        opacity: 0.5;
+      }
+
+      #version-btn:hover {
+        opacity: 1;
+      }
+
+      #side-menu {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 450px;
+        height: 100%;
+        background-color: #1a1a1a;
+        z-index: 200;
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.5);
+        display: flex;
+        flex-direction: column;
+        padding: 30px;
+        box-sizing: border-box;
+      }
+
+      #side-menu.open {
+        transform: translateX(0);
+      }
+
+      #menu-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 150;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+      }
+
+      #menu-overlay.visible {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .menu-item {
+        position: relative;
+        width: 100%;
+        margin-bottom: 30px;
+        background-color: #333;
+        text-align: center;
+        display: block;
+        max-width: 100% !important;
+      }
+
+      #menu-maymoo-btn {
+        background-color: #795548;
         display: none;
+      }
+
+      #menu-maymoo-btn.active {
+        background-color: #4e342e;
+        border: 2px solid #fff;
+      }
+
+      #menu-close-btn {
+        background-color: #f44336;
+        width: auto !important;
+      }
+
+      #menu-close-btn.active {
+        background-color: #c62828;
+        border: 2px solid #fff;
       }
 
       .particle {
@@ -198,22 +244,16 @@
       }
 
       @media (max-width: 600px) {
+        #side-menu {
+          width: 100%;
+        }
+
         .game-btn {
           width: auto;
           max-width: 90%;
           white-space: normal;
           height: auto;
-          font-size: clamp(13px, 5vw, 18px);
-          line-height: 1.2;
-          padding: 16px 24px;
-        }
-
-        .game-txt {
-          width: auto;
-          max-width: 90%;
-          white-space: normal;
-          height: auto;
-          font-size: clamp(13px, 5vw, 18px);
+          font-size: clamp(13px, 5vw, 19px);
           line-height: 1.2;
           padding: 16px 24px;
         }
@@ -270,9 +310,8 @@
   <body oncontextmenu="return false;">
     <div id="particle-container"></div>
     <div id="fade-overlay"></div>
-    <button id="menu-btn" class="game-btn">&#9776;</button>
-    <button id="maymoo-btn" class="game-btn" onclick="toggleMaymooMode()">
-      Maymoo Mode: OFF
+    <button id="menu-btn" class="game-btn" onclick="toggleMenu()">
+      &#9776;
     </button>
     <img
       id="sticker"
@@ -280,19 +319,46 @@
       draggable="false"
       onclick="handleClick(event)"
     />
-    <button id="char-btn" class="game-btn" onclick="openMenu()">
+    <button id="char-btn" class="game-btn" onclick="openCharMenu()">
       Choose Your Character
     </button>
-    <div
-      class="game-txt version"
+    <button
+      id="version-btn"
+      class="game-btn"
       onclick="
         unlockAudioContext();
         playSound('pushies', 1.0);
       "
     >
-      26.4
+      26.5
+    </button>
+    <div id="menu-overlay" onclick="toggleMenu()"></div>
+    <div id="side-menu">
+      <button
+        id="menu-close-btn"
+        class="game-btn menu-item"
+        onclick="toggleMenu()"
+      >
+        Close Menu
+      </button>
+      <button
+        class="game-btn menu-item"
+        onclick="
+          toggleMenu();
+          openCharMenu();
+        "
+      >
+        Choose Your Character
+      </button>
+      <button
+        id="menu-maymoo-btn"
+        class="game-btn menu-item"
+        onclick="toggleMaymooMode()"
+      >
+        Maymoo Mode: OFF
+      </button>
     </div>
-    <div id="char-overlay" onclick="closeMenu(event)">
+    <div id="char-overlay" onclick="closeCharMenu(event)">
       <div class="char-option" onclick="selectChar('assets/images/kovu.webp')">
         <img src="assets/images/kovu.webp" draggable="false" />
       </div>
@@ -382,6 +448,19 @@
           el.removeAttribute("style");
         });
       }
+      function toggleMenu() {
+        unlockAudioContext();
+        const menu = document.getElementById("side-menu");
+        const overlay = document.getElementById("menu-overlay");
+        const isOpen = menu.classList.contains("open");
+        if (isOpen) {
+          menu.classList.remove("open");
+          overlay.classList.remove("visible");
+        } else {
+          menu.classList.add("open");
+          overlay.classList.add("visible");
+        }
+      }
       const konamiCode = [
         "ArrowUp",
         "ArrowUp",
@@ -410,10 +489,12 @@
         }
       });
       function activateEasterEgg() {
-        const btn = document.getElementById("maymoo-btn");
+        const btn = document.getElementById("menu-maymoo-btn");
         btn.style.display = "block";
-        const txt = document.querySelector(".game-txt.version");
-        txt.style.display = "none";
+        const menu = document.getElementById("side-menu");
+        if (!menu.classList.contains("open")) {
+          toggleMenu();
+        }
         if (!isMaymooMode) toggleMaymooMode();
         unlockAudioContext();
         playSound("cheer", 1.0);
@@ -455,7 +536,7 @@
         unlockAudioContext();
         playSound("start", 1.0);
         isMaymooMode = !isMaymooMode;
-        const btn = document.getElementById("maymoo-btn");
+        const btn = document.getElementById("menu-maymoo-btn");
         if (isMaymooMode) {
           btn.innerText = "Maymoo Mode: ON";
           btn.classList.add("active");
@@ -464,13 +545,12 @@
           btn.classList.remove("active");
         }
       }
-      function openMenu() {
+      function openCharMenu() {
         unlockAudioContext();
         stopMenuAudio();
         const v = playSound("choose", 1.0);
-        if (v) chooseSource = v.source;
         const c = playSound("menu", 1.0, true);
-        if (c) menuSource = c.source;
+        if (c) chooseSource = c.source;
         document.getElementById("char-overlay").classList.add("visible");
       }
       function stopMenuAudio() {
@@ -487,7 +567,7 @@
           menuSource = null;
         }
       }
-      function closeMenu(e) {
+      function closeCharMenu(e) {
         if (e.target.id === "char-overlay") {
           document.getElementById("char-overlay").classList.remove("visible");
           stopMenuAudio();
