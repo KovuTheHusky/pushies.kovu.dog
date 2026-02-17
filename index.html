@@ -330,7 +330,7 @@
         playSound('pushies', 1.0);
       "
     >
-      26.5
+      26.6
     </button>
     <div id="menu-overlay" onclick="toggleMenu()"></div>
     <div id="side-menu">
@@ -400,6 +400,8 @@
         maxAnimDuration: 5000,
         safetyMargin: 1.25,
         initialPoolSize: 100,
+        menuLoopStart: 13.16,
+        menuLoopEnd: 25.32,
       };
       const MAX_POOL_SIZE = Math.ceil(
         (config.maxAnimDuration / config.minSpawnRate) * config.safetyMargin,
@@ -516,12 +518,26 @@
       let activeSources = [];
       let chooseSource = null;
       let menuSource = null;
-      function playSound(key, volume = 1.0, loop = false) {
+      function playSound(
+        key,
+        volume = 1.0,
+        loop = false,
+        loopStart = null,
+        loopEnd = null,
+      ) {
         if (audioCtx.state === "suspended") audioCtx.resume();
         if (!buffers[key]) return null;
+
         const source = audioCtx.createBufferSource();
         source.buffer = buffers[key];
         source.loop = loop;
+
+        // --- NEW: Apply gapless loop points if provided ---
+        if (loop && loopStart !== null && loopEnd !== null) {
+          source.loopStart = loopStart;
+          source.loopEnd = loopEnd;
+        }
+
         const gainNode = audioCtx.createGain();
         gainNode.gain.value = volume;
         source.connect(gainNode);
@@ -548,9 +564,18 @@
       function openCharMenu() {
         unlockAudioContext();
         stopMenuAudio();
+
         const v = playSound("choose", 1.0);
-        const c = playSound("menu", 1.0, true);
-        if (c) chooseSource = c.source;
+        if (v) chooseSource = v.source; // FIXED: Assign to chooseSource
+
+        // Figure out loop end (Use config value, or default to the file's total length)
+        const endPoint =
+          config.menuLoopEnd ||
+          (buffers["menu"] ? buffers["menu"].duration : 0);
+
+        const c = playSound("menu", 1.0, true, config.menuLoopStart, endPoint);
+        if (c) menuSource = c.source; // FIXED: Assign to menuSource
+
         document.getElementById("char-overlay").classList.add("visible");
       }
       function stopMenuAudio() {
